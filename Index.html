@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurante Coqueiro</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        header {
+            padding: 1em;
+            background: #333;
+            color: #fff;
+            text-align: center;
+        }
+        .nav-buttons {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1em;
+            margin: 1em 0;
+        }
+        .nav-buttons button {
+            padding: 0.75em 1.5em;
+            background: #333;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        .nav-buttons button:hover {
+            background: #555;
+        }
+        .section {
+            display: none;
+            padding: 2em;
+        }
+        .active {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5em;
+        }
+        th, td {
+            padding: 0.75em;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background: #555;
+            color: #fff;
+        }
+        button {
+            padding: 0.5em 1em;
+            margin: 0.5em 0;
+            background: #333;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #555;
+        }
+        .mesa {
+            margin-bottom: 1em;
+            padding: 1em;
+            border: 1px solid #ccc;
+            background: #f9f9f9;
+        }
+        .alerta-estoque {
+            color: red;
+            font-weight: bold;
+        }
+        @media (max-width: 600px) {
+            .nav-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Restaurante Coqueiro</h1>
+    </header>
+    <div class="nav-buttons">
+        <button onclick="showSection('cardapio')">Cardápio</button>
+        <button onclick="showSection('pedidos')">Pedidos</button>
+        <button onclick="showSection('estoque')">Estoque</button>
+        <button onclick="showSection('relatorios')">Relatórios</button>
+    </div>
+
+    <main>
+        <section id="cardapio" class="section active">
+            <h2>Cardápio</h2>
+            <div id="categorias">
+                <!-- Categorias serão geradas dinamicamente -->
+            </div>
+        </section>
+
+        <section id="pedidos" class="section">
+            <h2>Pedidos por Mesa</h2>
+            <div id="mesas-container"></div>
+        </section>
+
+        <section id="estoque" class="section">
+            <h2>Estoque</h2>
+            <div>
+                <h3>Adicionar novo item ao Estoque</h3>
+                <label>Categoria: <input type="text" id="nova-categoria" placeholder="Ex: Bebidas"></label><br>
+                <label>Item: <input type="text" id="novo-item" placeholder="Ex: Água 500ml"></label><br>
+                <label>Preço: <input type="number" id="novo-preco" placeholder="Ex: 3.00" step="0.01"></label><br>
+                <button onclick="adicionarNovoItem()">Adicionar Item</button>
+            </div>
+            <table id="estoque-tabela">
+                <tr><th>Item</th><th>Quantidade</th><th>Ação</th></tr>
+            </table>
+            <div id="alerta-estoque"></div>
+        </section>
+
+        <section id="relatorios" class="section">
+            <h2>Relatórios de Vendas</h2>
+            <p>Total Vendido: R$ <span id="total-vendas">0,00</span></p>
+            <h3>Itens Mais Vendidos</h3>
+            <ul id="itens-mais-vendidos"></ul>
+            <h3>Estoque Baixo</h3>
+            <ul id="estoque-baixo"></ul>
+        </section>
+    </main>
+
+    <script>
+        const cardapio = {
+    "Comidas": [
+        { item: "Galinha Caipira Inteira", preco: 150 },
+        { item: "Galinha Caipira Metade", preco: 75 },
+        { item: "Carne de Sol", preco: 35.90 },
+        { item: "Carne de Bode", preco: 35.90 },
+        { item: "Bife", preco: 25.90 },
+        { item: "File de Frango", preco: 25.90 },
+        { item: "Strogonoff", preco: 25.90 }
+    ],
+    "Petisco": [
+        { item: "Carne de Sol", preco: 35.90 },
+        { item: "Calabresa", preco: 30.90 },
+        { item: "Batata Frita", preco: 12.90 }  
+    ],      
+    "Cervejas 600ml": [
+        { item: "Skol 600ml", preco: 10 },
+        { item: "Brahma 600ml", preco: 10 },
+        { item: "Brahma Duplo Malte 600ml", preco: 10 },
+        { item: "Heineken 600ml", preco: 14 },
+        { item: "Stella Artois 600ml", preco: 14 },
+        { item: "Spaten 600ml", preco: 14 }
+    ],
+    "Energetico": [
+        { item: "Red Bull", preco: 14.99 },
+        { item: "Monster", preco: 14.99 }
+    ],
+    "Refrigerantes 1L": [
+        { item: "Coca Cola 1L", preco: 8 }
+    ],
+    "Refrigerantes 2l": [
+        { item: "Coca Cola 2L", preco: 14.99 },
+        { item: "Jesus 2L", preco: 14.99 },
+        { item: "Guarana 2L", preco: 14.99 },
+        { item: "Fanta Laranja 2L", preco: 14.99 }
+    ],
+    "Refrigerantes Lata": [
+        { item: "Coca Cola Lata", preco: 5.99 },
+        { item: "Coca Cola Zero Lata", preco: 5.99 },
+        { item: "Guarana Lata", preco: 5.99 },
+        { item: "Fanta Laranja Lata", preco: 5.99 },
+        { item: "Jesus Lata", preco: 5.99 }   
+    ],
+    "Água": [
+        { item: "Água S/G 500ml", preco: 3.50 },
+        { item: "Água C/G 500ml", preco: 4.99 }
+    ],
+    "Suco": [
+        { item: "Suco Laranja", preco: 5.99 },
+        { item: "Suco Maracuja", preco: 5.99 },
+        { item: "Suco Acerola", preco: 5.99 }
+    ]
+};
+
+        const estoque = {};
+        const pedidosResumo = [];
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+        }
+
+        function renderCardapio() {
+            const categoriasDiv = document.getElementById('categorias');
+            categoriasDiv.innerHTML = '';
+            for (let categoria in cardapio) {
+                const section = document.createElement('div');
+                section.innerHTML = `<h3>${categoria}</h3>`;
+                const table = document.createElement('table');
+                table.innerHTML = '<tr><th>Item</th><th>Preço (R$)</th></tr>';
+                cardapio[categoria].forEach(({ item, preco }) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${item}</td><td>${preco.toFixed(2)}</td>`;
+                    table.appendChild(row);
+                    if (!estoque[item]) estoque[item] = 10;
+                });
+                section.appendChild(table);
+                categoriasDiv.appendChild(section);
+            }
+            renderEstoque();
+        }
+
+        function renderEstoque() {
+            const tabelaEstoque = document.getElementById('estoque-tabela');
+            tabelaEstoque.innerHTML = '<tr><th>Item</th><th>Quantidade</th><th>Ação</th></tr>';
+            document.getElementById('estoque-baixo').innerHTML = '';
+            for (let item in estoque) {
+                const row = document.createElement('tr');
+                row.innerHTML = 
+                    `<td>${item}</td>
+                    <td id="estoque-${item}">${estoque[item]}</td>
+                    <td>
+                        <button onclick="ajustarEstoque('${item}', -1)">Remover 1</button>
+                        <button onclick="ajustarEstoque('${item}', 1)">Adicionar 1</button>
+                    </td>`;
+                tabelaEstoque.appendChild(row);
+
+                if (estoque[item] <= 3) {
+                    const alerta = document.createElement('li');
+                    alerta.innerText = `${item}: Estoque baixo (${estoque[item]})`;
+                    document.getElementById('estoque-baixo').appendChild(alerta);
+                }
+            }
+        }
+
+        function ajustarEstoque(item, valor) {
+            estoque[item] = (estoque[item] || 0) + valor;
+            if (estoque[item] < 0) estoque[item] = 0;
+            document.getElementById(`estoque-${item}`).textContent = estoque[item];
+            renderEstoque();
+        }
+
+        function adicionarNovoItem() {
+            const categoria = document.getElementById('nova-categoria').value;
+            const item = document.getElementById('novo-item').value;
+            const preco = parseFloat(document.getElementById('novo-preco').value);
+
+            if (!categoria || !item || isNaN(preco)) {
+                alert('Preencha todos os campos corretamente.');
+                return;
+            }
+
+            if (!cardapio[categoria]) cardapio[categoria] = [];
+            cardapio[categoria].push({ item, preco });
+            estoque[item] = 10;
+
+            renderCardapio();
+            alert(`Item ${item} adicionado ao estoque.`);
+        }
+
+        function criarMesas(numMesas) {
+            const container = document.getElementById('mesas-container');
+            container.innerHTML = '';
+            for (let i = 1; i <= numMesas; i++) {
+                const mesaDiv = document.createElement('div');
+                mesaDiv.className = 'mesa';
+                mesaDiv.innerHTML = 
+                    `<h3>Mesa ${i}</h3>
+                    <label>Nome do Cliente: <input type="text" id="cliente-mesa-${i}"></label>
+                    <div>
+                        <h4>Adicionar Pedido</h4>
+                        <select id="pedido-mesa-${i}">
+                            ${gerarOpcoesCardapio()}
+                        </select>
+                        <button onclick="adicionarPedido(${i})">Adicionar</button>
+                        <button onclick="fecharConta(${i})">Fechar Conta</button>
+                    </div>
+                    <ul id="pedidos-mesa-${i}"></ul>
+                    <p>Total: R$ <span id="total-mesa-${i}">0,00</span></p>`;
+                container.appendChild(mesaDiv);
+            }
+        }
+
+        function gerarOpcoesCardapio() {
+            let opcoes = '';
+            for (let categoria in cardapio) {
+                cardapio[categoria].forEach(({ item }) => {
+                    opcoes += `<option value="${item}">${item}</option>`;
+                });
+            }
+            return opcoes;
+        }
+
+        function adicionarPedido(mesa) {
+            const pedidoSelecionado = document.getElementById(`pedido-mesa-${mesa}`).value;
+            const listaPedidos = document.getElementById(`pedidos-mesa-${mesa}`);
+            const preco = obterPrecoDoItem(pedidoSelecionado);
+            const novoPedido = document.createElement('li');
+            novoPedido.textContent = `${pedidoSelecionado} - R$ ${preco.toFixed(2)}`;
+            listaPedidos.appendChild(novoPedido);
+
+            const cliente = document.getElementById(`cliente-mesa-${mesa}`).value || 'Cliente não identificado';
+            const totalElemento = document.getElementById(`total-mesa-${mesa}`);
+            const totalAtual = parseFloat(totalElemento.textContent.replace(',', '.'));
+            totalElemento.textContent = (totalAtual + preco).toFixed(2).replace('.', ',');
+
+            if (estoque[pedidoSelecionado] > 0) {
+                ajustarEstoque(pedidoSelecionado, -1);
+            } else {
+                alert(`Estoque insuficiente para o item: ${pedidoSelecionado}`);
+            }
+
+            pedidosResumo.push({ mesa, cliente, item: pedidoSelecionado, preco });
+            atualizarRelatorios(pedidoSelecionado, preco);
+        }
+
+        function obterPrecoDoItem(item) {
+            for (let categoria in cardapio) {
+                for (let produto of cardapio[categoria]) {
+                    if (produto.item === item) {
+                        return produto.preco;
+                    }
+                }
+            }
+            return 0;
+        }
+
+        function fecharConta(mesa) {
+            const totalElemento = document.getElementById(`total-mesa-${mesa}`).textContent;
+            const metodoPagamento = prompt('Escolha o método de pagamento: (1) Dinheiro, (2) Cartão, (3) PIX');
+
+            if (metodoPagamento === '1') {
+                const valorRecebido = parseFloat(prompt('Digite o valor recebido:'));
+                const troco = valorRecebido - parseFloat(totalElemento.replace(',', '.'));
+                alert(`Troco: R$ ${troco.toFixed(2)}`);
+            } else if (metodoPagamento === '2' || metodoPagamento === '3') {
+                alert('Pagamento confirmado. Obrigado!');
+            } else {
+                alert('Método de pagamento inválido.');
+            }
+
+            document.getElementById(`pedidos-mesa-${mesa}`).innerHTML = '';
+            document.getElementById(`total-mesa-${mesa}`).textContent = '0,00';
+        }
+
+        function atualizarRelatorios(item, preco) {
+            const totalVendas = document.getElementById('total-vendas');
+            const valorAtual = parseFloat(totalVendas.textContent.replace(',', '.'));
+            totalVendas.textContent = (valorAtual + preco).toFixed(2).replace('.', ',');
+
+            const itensVendidos = document.getElementById('itens-mais-vendidos');
+            let itemExistente = [...itensVendidos.children].find(li => li.dataset.item === item);
+            if (itemExistente) {
+                const [nome, quantidade] = itemExistente.textContent.split(' (');
+                const novaQuantidade = parseInt(quantidade) + 1;
+                itemExistente.textContent = `${item} (${novaQuantidade})`;
+            } else {
+                const novoItem = document.createElement('li');
+                novoItem.dataset.item = item;
+                novoItem.textContent = `${item} (1)`;
+                itensVendidos.appendChild(novoItem);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCardapio();
+            criarMesas(15);
+        });
+    </script> 
+</body>
+</html>
